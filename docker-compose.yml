@@ -1,0 +1,57 @@
+version: '3.2'
+services:
+  db:
+    image: mysql:8.0
+    container_name: "Mysql"
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      # MYSQL_PORT: ${MYSQL_PORT}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      # MYSQL_USER: ${MYSQL_USER}
+      # MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - ./migrations:/docker-entrypoint-initdb.d
+    ports:
+      - "3306:3306"
+    networks:
+      back-tier:
+        aliases:
+          - database
+
+  # migrate:
+  #   depends_on:
+  #     - db
+  #   image: migrate/migrate
+  #   volumes:
+  #     - ./migrations:/migrations
+  #   command: ["-path","migrations/","-database","mysql://@tcp(database:3306)/merchandise?charset=utf8","up","9"]
+  #   networks:
+  #     - back-tier
+
+  phpmyadmin:
+    depends_on:
+      - db
+    image: phpmyadmin/phpmyadmin
+    container_name: "Mysql-phpmyadmin"
+    environment:
+      PMA_HOST: db
+      PMA_USER: ${MYSQL_USER}
+      PMA_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "8080:80"
+    networks:
+      - back-tier
+
+  go-api-server:
+    build: .
+    container_name: "Go-api-server"
+    depends_on:
+      - db
+    ports:
+      - "9999:9999"
+    links:
+      - db
+networks:
+  back-tier:
+    driver: bridge
