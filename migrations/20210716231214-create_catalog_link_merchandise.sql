@@ -1,12 +1,12 @@
 -- +migrate Up
 CREATE TABLE IF NOT EXISTS catalog_link_merchandise(
     `id` integer PRIMARY KEY AUTO_INCREMENT,
-    `layer_root` integer DEFAULT null ,
-    `layer_a` integer DEFAULT null ,
-    `layer_b` integer DEFAULT null ,
-    `layer_c` integer DEFAULT null ,
-    `layer_d` integer DEFAULT null ,
-    `merchandise_id` integer,
+    `layer_root` integer DEFAULT 0 ,
+    `layer_a` integer DEFAULT 0 ,
+    `layer_b` integer DEFAULT 0 ,
+    `layer_c` integer DEFAULT 0 ,
+    `layer_d` integer DEFAULT 0 ,
+    `merchandise_id` integer DEFAULT 0,
     `hidden` tinyint  DEFAULT 0 COMMENT '不隱藏:0,隱藏:1',
     `created_at`datetime,
     `updated_at`datetime

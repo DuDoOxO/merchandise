@@ -1,0 +1,7 @@
+development:
+  dialect: mysql
+  datasource: root:root@tcp(localhost:3306)/merchandise?parseTime=true
+  dir: migrations
+test:
+  dialect: mysql
+  datasource: root:passtest@tcp(localhost:3307)/merchandise
