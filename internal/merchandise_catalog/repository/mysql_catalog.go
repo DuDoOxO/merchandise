@@ -21,7 +21,7 @@ func NewCatalog(orm *xorm.Engine) merchandise_catalog.Repository {
 func (c *Catalog) AddCatalog(catalog *models.MerchandiseCatalog) (*models.MerchandiseCatalog, error) {
 	_, err := c.orm.Insert(catalog)
 	if err != nil {
-		return nil, fmt.Errorf(" Add catalog error : %s ", err)
+		return nil, fmt.Errorf(" Add catalog error : %w", err)
 	}
 
 	return catalog, err
@@ -34,7 +34,7 @@ func (c *Catalog) GetCatalog(id int64) (*models.MerchandiseCatalog, error) {
 	}
 	get, err := c.orm.Get(mc)
 	if err != nil {
-		return nil, fmt.Errorf(" Get catalog error : %s", err)
+		return nil, fmt.Errorf(" Get catalog error : %w", err)
 	}
 
 	if !get {
@@ -66,7 +66,11 @@ func (c *Catalog) FindCatalog(page int64) ([]*models.MerchandiseCatalog, error) 
 	`
 	err := c.orm.SQL(sql, offset).Find(&mcs)
 	if err != nil {
-		return nil, fmt.Errorf(" List all catalogs error :%s", err)
+		return nil, fmt.Errorf(" List all catalogs error :%w", err)
+	}
+
+	if mcs == nil {
+		return nil, nil
 	}
 
 	return mcs, nil
@@ -76,9 +80,9 @@ func (c *Catalog) FindCatalog(page int64) ([]*models.MerchandiseCatalog, error) 
 func (c *Catalog) UpdCatalog(id int64, m *models.MerchandiseCatalog) error {
 	_, err := c.orm.ID(id).Cols("hidden", "name").Update(m)
 	if err != nil {
-		return fmt.Errorf(" Update catalog error : %s", err)
+		return fmt.Errorf(" Update catalog error : %w", err)
 	}
-	
+
 	return nil
 
 }
@@ -89,7 +93,7 @@ func (c *Catalog) DelCatalog(id int64) error {
 	})
 
 	if err != nil {
-		return fmt.Errorf(" Delete catalog error :%s ", err)
+		return fmt.Errorf(" Delete catalog error :%w ", err)
 	}
 
 	return nil
