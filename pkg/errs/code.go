@@ -1,10 +1,10 @@
 package errs
 
 const (
-	InvalidParams    = 400
-	Unauthorized     = 401
-	ForbiddenOper    = 403
-	NotFoundResource = 404
+	InvalidParams    = 400400
+	Unauthorized     = 400401
+	ForbiddenOper    = 400403
+	NotFoundResource = 400404
 	ServerUnknown    = 500000
 	DBInsErr         = 500001
 	DBGetErr         = 500002
