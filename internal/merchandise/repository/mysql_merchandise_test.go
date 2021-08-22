@@ -52,7 +52,6 @@ func TestAddMerchandise(t *testing.T) {
 
 	// teardown
 	_, _ = orm.Delete(m)
-
 }
 
 // Test GetMerchandise.
@@ -80,17 +79,18 @@ func TestFindMerchandise(t *testing.T) {
 	mRepo := NewMerchandise(orm)
 	mc := &models.MerchandiseCondition{
 		Launched: 0,
-		UPrice:   100,
-		LPrice:   30,
+		UPrice:   1000,
+		LPrice:   100,
 	}
 
 	// act
 	ml, err := mRepo.FindMerchandise(mc)
 
+	t.Log(err)
 	// assert
-	t.Log(ml[0])
+	t.Log(ml)
 	assert.Nil(t, err)
-	assert.NotEqual(t, 0, len(ml))
+	assert.NotEmpty(t, ml)
 	assert.Equal(t, mc.Launched, ml[0].Launched)
 
 	// teardown
@@ -109,20 +109,22 @@ func TestUpdMerchandise(t *testing.T) {
 		Price: 200,
 	}
 	pm := &models.Merchandise{}
+	old := &models.Merchandise{}
 
 	// act
+	_, _ = orm.ID(id).Get(old)
 	updErr := mRepo.UpdMerchandise(id, um)
-	has, getErr := orm.Get(pm)
+	_, _ = orm.ID(id).Get(pm)
 
 	// assert
 	assert.Nil(t, updErr)
-	assert.Nil(t, getErr)
-	assert.Equal(t, has, true)
 	assert.Equal(t, um.Name, pm.Name)
 	assert.Equal(t, um.Cost, pm.Cost)
 	assert.Equal(t, um.Price, pm.Price)
 
 	// teardown
+	_, _ = orm.ID(id).Update(old)
+
 }
 
 // Test DelMerchandise.
@@ -141,11 +143,10 @@ func TestDelMerchandise(t *testing.T) {
 
 	// assert
 	assert.Nil(t, err)
-	assert.Equal(t, prim.IsDisable, 1)
+	assert.Equal(t, int64(1), prim.IsDisable)
 
 	// teardown
-	_, _ = orm.Cols("is_disable").Update(&models.Merchandise{
-		Id:        id,
+	_, _ = orm.ID(id).Cols("is_disable").Update(&models.Merchandise{
 		IsDisable: 0,
 	})
 
