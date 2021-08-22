@@ -2,7 +2,6 @@ package repository
 
 import (
 	"fmt"
-	"merchandise/api/response"
 	"merchandise/internal/merchandise"
 	"merchandise/models"
 	"time"
@@ -45,9 +44,9 @@ func (m *Merchandise) GetMerchandise(index int64) (*models.Merchandise, error) {
 
 }
 
-func (m *Merchandise) FindMerchandise(mer *models.MerchandiseCondition) ([]*response.MerchandisesList, error) {
+func (m *Merchandise) FindMerchandise(mer *models.MerchandiseCondition) ([]*models.FindMerchandiseOutput, error) {
 	// name,price,launched,start_of_sale,end_of_sale
-	res := make([]*response.MerchandisesList, 0)
+	res := make([]*models.FindMerchandiseOutput, 0)
 	sql := `
 	SELECT
 		id,
@@ -58,7 +57,7 @@ func (m *Merchandise) FindMerchandise(mer *models.MerchandiseCondition) ([]*resp
 		launched,
 		start_of_sale,
 		end_of_sale
-	From merchandsie
+	From merchandise
 	WHERE
 		launched = ?
 	AND
@@ -114,12 +113,21 @@ func (m *Merchandise) FindMerchandise(mer *models.MerchandiseCondition) ([]*resp
 		return nil, fmt.Errorf("list default merchandise error : %s ", err)
 	}
 
-	return nil, nil
+	return res, nil
 
 }
 
 func (m *Merchandise) UpdMerchandise(id int64, mer *models.MerchandiseUpdate) error {
-	_, err := m.orm.ID(id).Update(mer)
+	mm := &models.Merchandise{
+		Name: mer.Name,
+		Cost: mer.Cost,
+		Price: mer.Price,
+		Statement: mer.Statement,
+		Launched: mer.Launched,
+		StartOfSale: mer.StartOfSale,
+		EndOfSale: mer.EndOfSale,
+	}
+	_, err := m.orm.ID(id).Update(mm)
 	if err != nil {
 		return fmt.Errorf("Update Merchandise error : %s", err)
 	}
