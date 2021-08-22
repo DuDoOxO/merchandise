@@ -2,9 +2,8 @@ package api
 
 import (
 	"merchandise/api/request"
-	"merchandise/api/response"
 	"merchandise/internal/merchandise_catalog/repository"
-	"merchandise/models"
+	"merchandise/internal/merchandise_catalog/service"
 	"merchandise/pkg/errs"
 	"strconv"
 
@@ -23,29 +22,22 @@ import (
 // @Failure 500 {object} errs.AppErrorMsg "{"code":500,"msg":"Database operation error"}"
 // @Router /v1/merchandise-catalog [post]
 func AddMerchandiseCatalog(ctx *fiber.Ctx) error {
+	var err error
 	req := &request.MerchandiseCatalog{}
-	err := ctx.BodyParser(req)
+	err = ctx.BodyParser(req)
 	if err != nil {
-		return errs.NewAppError(errs.InvalidParams, err)
+		return errs.NewAppError(400, errs.InvalidParams, "", err)
 	}
 
 	cRep := repository.NewCatalog(env.orm)
-	rs, err := cRep.AddCatalog(&models.MerchandiseCatalog{
-		Name: req.Name,
-	})
+	cSrv := service.NewCatalogSrv(cRep)
+	err = cSrv.AddCatalog(req)
 	if err != nil {
-		return errs.NewAppError(errs.DBInsErr, err)
+		return err
 	}
 
-	res := &response.MerchandiseCatalog{
-		Id:        rs.Id,
-		Name:      rs.Name,
-		Hidden:    rs.Hidden,
-		CreatedAt: rs.CreatedAt,
-		UpdatedAt: rs.UpdatedAt,
-	}
-
-	_ = ctx.JSON(res)
+	output := map[string]interface{}{}
+	_ = ctx.JSON(output)
 	return err
 }
 
@@ -65,17 +57,19 @@ func DelMerchandiseCatalog(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return errs.NewAppError(errs.InvalidParams, err)
+		return errs.NewAppError(400, errs.InvalidParams, "", err)
 	}
 
 	cRep := repository.NewCatalog(env.orm)
-	err = cRep.DelCatalog(id)
-	if err != nil {
-		return errs.NewAppError(errs.DBDelErr, err)
+	cSrv := service.NewCatalogSrv(cRep)
+	if err = cSrv.DelCatalog(id); err != nil {
+		return err
 	}
 
-	_ = ctx.JSON(nil)
+	output := map[string]interface{}{}
+	_ = ctx.JSON(output)
 	return err
+
 }
 
 // @Summary Update merchandise catalog
@@ -97,28 +91,24 @@ func UpdMerchandiseCatalog(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return errs.NewAppError(errs.InvalidParams, err)
+		return errs.NewAppError(400, errs.InvalidParams, "", err)
 	}
 
 	// parse request body
 	req := &request.MerchandiseCatalogUpdate{}
 	err = ctx.BodyParser(req)
 	if err != nil {
-		return errs.NewAppError(errs.InvalidParams, err)
-	}
-
-	mc := &models.MerchandiseCatalog{
-		Name:   req.Name,
-		Hidden: req.Hidden,
+		return errs.NewAppError(400, errs.InvalidParams, "", err)
 	}
 
 	cRep := repository.NewCatalog(env.orm)
-	err = cRep.UpdCatalog(id, mc)
-	if err != nil {
-		return errs.NewAppError(errs.DBUpdErr, err)
+	cSrv := service.NewCatalogSrv(cRep)
+	if err = cSrv.UpdCatalog(id, req); err != nil {
+		return err
 	}
 
-	_ = ctx.JSON(nil)
+	output := map[string]interface{}{}
+	_ = ctx.JSON(output)
 	return err
 }
 
@@ -140,16 +130,17 @@ func FindMerchandiseCatalog(ctx *fiber.Ctx) error {
 	pageStr := ctx.Params("page")
 	page, err := strconv.ParseInt(pageStr, 10, 64)
 	if err != nil {
-		return errs.NewAppError(errs.InvalidParams, err)
+		return errs.NewAppError(400, errs.InvalidParams, "", err)
 	}
 
 	cRep := repository.NewCatalog(env.orm)
-	pgs, err := cRep.FindCatalog(page)
+	cSrv := service.NewCatalogSrv(cRep)
+	res, err := cSrv.FindCatalog(page)
 	if err != nil {
-		return errs.NewAppError(errs.DBGetErr, err)
+		return err
 	}
 
-	_ = ctx.JSON(pgs)
+	_ = ctx.JSON(res)
 	return err
 
 }
@@ -171,26 +162,16 @@ func GetMerchandiseCatalog(ctx *fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return errs.NewAppError(errs.InvalidParams, err)
+		return errs.NewAppError(400, errs.InvalidParams, "", err)
 	}
 
 	cRep := repository.NewCatalog(env.orm)
-	ca, err := cRep.GetCatalog(id)
+	cSrv := service.NewCatalogSrv(cRep)
+	mc, err := cSrv.GetCatalog(id)
 	if err != nil {
-		return errs.NewAppError(errs.DBGetErr, err)
+		return err
 	}
 
-	if ca == nil {
-		return errs.NewAppError(errs.NotFoundResource, err)
-	}
-
-	res := &response.MerchandiseCatalog{
-		Id:        ca.Id,
-		Name:      ca.Name,
-		Hidden:    ca.Hidden,
-		CreatedAt: ca.CreatedAt,
-		UpdatedAt: ca.UpdatedAt,
-	}
-	_ = ctx.JSON(res)
+	_ = ctx.JSON(mc)
 	return err
 }
