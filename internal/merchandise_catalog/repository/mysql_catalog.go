@@ -78,7 +78,7 @@ func (c *Catalog) FindCatalog(page int64) ([]*models.MerchandiseCatalog, error) 
 }
 
 func (c *Catalog) UpdCatalog(id int64, m *models.MerchandiseCatalog) error {
-	_, err := c.orm.ID(id).Cols("hidden", "name").Update(m)
+	_, err := c.orm.ID(id).Cols("hidden", "name","prev_id","is_root").Update(m)
 	if err != nil {
 		return fmt.Errorf(" Update catalog error : %w", err)
 	}

@@ -105,8 +105,7 @@ func (c *Catalog) UpdCatalog(cId int64, mu *request.MerchandiseCatalogUpdate) er
 
 func (c *Catalog) DelCatalog(cId int64) error {
 	var err error
-	err = c.mcRep.DelCatalog(cId)
-	if err != nil {
+	if err = c.mcRep.DelCatalog(cId); err != nil {
 		return err
 	}
 
