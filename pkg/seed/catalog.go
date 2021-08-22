@@ -8,7 +8,7 @@ import (
 
 func SeedForCatalog() []*models.MerchandiseCatalog {
 	gofakeit.Seed(0)
-	const count = 100
+	const count = 20
 	catalogs := make([]*models.MerchandiseCatalog, count)
 	// catalogName := []string{"ABCDEFGHIJKLMNOPQRSTUVWXYZ_-"}
 	for i := 0; i < count; i++ {

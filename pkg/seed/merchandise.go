@@ -10,7 +10,7 @@ import (
 
 func SeedForMerchandise() []*models.Merchandise {
 	gofakeit.Seed(0)
-	const count = 100
+	const count = 20
 	merchandises := make([]*models.Merchandise, count)
 
 	now := time.Now().UnixNano()
@@ -26,7 +26,7 @@ func SeedForMerchandise() []*models.Merchandise {
 			Name:        gofakeit.Vegetable(),
 			Cost:        int64(cost),
 			Price:       int64(price),
-			Statement:   gofakeit.HipsterSentence(50),
+			Statement:   gofakeit.HipsterSentence(5),
 			StartOfSale: date,
 			EndOfSale:   date.Add(day),
 			CreatedAt:   createdTime,
