@@ -1,12 +1,31 @@
 package repository
 
 import (
+	"fmt"
+	"merchandise/config"
 	"merchandise/driver"
 	"merchandise/models"
+	"os"
 	"testing"
 
+	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
 )
+
+func setUp() {
+	if err := godotenv.Load(config.GetAppBasePath() + "/.env"); err != nil {
+		panic(fmt.Sprintf(" load .env error : %s", err))
+	}
+}
+
+// Test Main.
+func TestMain(m *testing.M) {
+	fmt.Println("====== catalog service test start====== ")
+	setUp()
+	code := m.Run()
+	fmt.Println("====== catalog service test end====== ")
+	os.Exit(code)
+}
 
 // Test AddCatalog.
 func TestAddCatalog(t *testing.T) {
@@ -86,7 +105,7 @@ func TestUpdCatalog(t *testing.T) {
 	assert.NotEqual(t, m.Hidden, old.Hidden)
 
 	// teardown
-	_, _ = orm.ID(id).Cols("hidden").Update(old)
+	_, _ = orm.ID(id).Cols("hidden", "name").Update(old)
 
 }
 
