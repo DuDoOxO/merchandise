@@ -6,8 +6,10 @@ import {
   adjustStock, batchLaunch, batchDelete, getAllMerchandise,
 } from '../db/queries/merchandise'
 import type { Merchandise, MerchandiseInput, MerchandiseFilter } from '../db/queries/merchandise'
+import type { SortOption } from '../db/init'
 import Modal from '../components/Modal'
 import MerchandiseForm from '../components/merchandise/MerchandiseForm'
+import SortableHeader from '../components/SortableHeader'
 
 function exportCsv(rows: Merchandise[], t: (k: string) => string) {
   const headers = ['ID', t('merchandise.labelName'), t('merchandise.labelCost'), t('merchandise.labelPrice'), t('merchandise.labelStock'), t('merchandise.launched'), t('merchandise.labelStartOfSale'), t('merchandise.labelEndOfSale'), t('common.createdAt')]
@@ -29,10 +31,11 @@ export default function MerchandisePage() {
   const [editing, setEditing] = useState<Merchandise | null>(null)
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [filter, setFilter] = useState<MerchandiseFilter>({})
+  const [sort, setSort] = useState<SortOption>({ key: 'id', dir: 'desc' })
   const [stockDelta, setStockDelta] = useState(0)
 
-  const qKey = ['merchandise', page, filter]
-  const { data = [] } = useQuery({ queryKey: qKey, queryFn: () => findAllMerchandise(page, filter) })
+  const qKey = ['merchandise', page, filter, sort]
+  const { data = [] } = useQuery({ queryKey: qKey, queryFn: () => findAllMerchandise(page, filter, sort) })
 
   const invalidate = () => { qc.invalidateQueries({ queryKey: ['merchandise'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }) }
   const addMut = useMutation({ mutationFn: (d: MerchandiseInput) => addMerchandise(d), onSuccess: () => { invalidate(); setModal(null) } })
@@ -113,9 +116,18 @@ export default function MerchandisePage() {
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="px-4 py-3 w-8"><input type="checkbox" checked={allChecked} onChange={toggleAll} /></th>
-              {[t('common.id'), t('common.name'), t('merchandise.cost'), t('merchandise.price'), t('merchandise.stock'), t('merchandise.launched'), t('merchandise.salePeriod'), t('common.actions')].map((h) => (
-                <th key={h} className="px-4 py-3 text-left font-medium text-gray-600">{h}</th>
+              {[
+                { label: t('common.id'), key: 'id' },
+                { label: t('common.name'), key: 'name' },
+                { label: t('merchandise.cost'), key: 'cost' },
+                { label: t('merchandise.price'), key: 'price' },
+                { label: t('merchandise.stock'), key: 'stock' },
+                { label: t('merchandise.launched'), key: 'launched' },
+                { label: t('merchandise.salePeriod'), key: 'start_of_sale' },
+              ].map(({ label, key }) => (
+                <SortableHeader key={key} label={label} sortKey={key} sort={sort} onSort={(s) => { setSort(s); setPage(1) }} />
               ))}
+              <th className="px-4 py-3 text-left font-medium text-gray-600">{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">

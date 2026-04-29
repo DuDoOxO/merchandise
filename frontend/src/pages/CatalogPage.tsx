@@ -3,18 +3,21 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { findAllCatalogs, addCatalog, updateCatalog, deleteCatalog } from '../db/queries/catalog'
 import type { Catalog } from '../db/queries/catalog'
+import type { SortOption } from '../db/init'
 import Modal from '../components/Modal'
 import CatalogForm from '../components/catalog/CatalogForm'
+import SortableHeader from '../components/SortableHeader'
 
 export default function CatalogPage() {
   const { t } = useTranslation()
   const qc = useQueryClient()
   const [page, setPage] = useState(1)
   const [keyword, setKeyword] = useState('')
+  const [sort, setSort] = useState<SortOption>({ key: 'id', dir: 'desc' })
   const [modal, setModal] = useState<'add' | 'edit' | null>(null)
   const [editing, setEditing] = useState<Catalog | null>(null)
 
-  const { data = [] } = useQuery({ queryKey: ['catalog', page, keyword], queryFn: () => findAllCatalogs(page, keyword) })
+  const { data = [] } = useQuery({ queryKey: ['catalog', page, keyword, sort], queryFn: () => findAllCatalogs(page, keyword, sort) })
 
   const invalidate = () => { qc.invalidateQueries({ queryKey: ['catalog'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }) }
   const addMut = useMutation({ mutationFn: (name: string) => addCatalog(name), onSuccess: () => { invalidate(); setModal(null) } })
@@ -44,9 +47,17 @@ export default function CatalogPage() {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              {[t('common.id'), t('common.name'), t('catalog.hidden'), t('catalog.isRoot'), t('catalog.prevId'), t('common.createdAt'), t('common.actions')].map((h) => (
-                <th key={h} className="px-4 py-3 text-left font-medium text-gray-600">{h}</th>
+              {[
+                { label: t('common.id'), key: 'id' },
+                { label: t('common.name'), key: 'name' },
+                { label: t('catalog.hidden'), key: 'hidden' },
+                { label: t('catalog.isRoot'), key: 'is_root' },
+                { label: t('catalog.prevId'), key: 'prev_id' },
+                { label: t('common.createdAt'), key: 'created_at' },
+              ].map(({ label, key }) => (
+                <SortableHeader key={key} label={label} sortKey={key} sort={sort} onSort={(s) => { setSort(s); setPage(1) }} />
               ))}
+              <th className="px-4 py-3 text-left font-medium text-gray-600">{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">

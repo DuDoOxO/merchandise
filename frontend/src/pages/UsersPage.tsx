@@ -3,8 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { findAllUsers, addUser, updateUser, deleteUser, getAllRoles } from '../db/queries/auth'
 import type { User, UserInput } from '../db/queries/auth'
+import type { SortOption } from '../db/init'
 import Modal from '../components/Modal'
 import { useAuth } from '../context/AuthContext'
+import SortableHeader from '../components/SortableHeader'
 
 function UserForm({ initial, onSubmit, onCancel }: { initial?: User | null; onSubmit: (d: UserInput) => void; onCancel: () => void }) {
   const { t } = useTranslation()
@@ -73,10 +75,11 @@ export default function UsersPage() {
   const qc = useQueryClient()
   const { can } = useAuth()
   const [page, setPage] = useState(1)
+  const [sort, setSort] = useState<SortOption>({ key: 'id', dir: 'asc' })
   const [modal, setModal] = useState<'add' | 'edit' | null>(null)
   const [editing, setEditing] = useState<User | null>(null)
 
-  const { data: users = [] } = useQuery({ queryKey: ['users', page], queryFn: () => findAllUsers(page) })
+  const { data: users = [] } = useQuery({ queryKey: ['users', page, sort], queryFn: () => findAllUsers(page, sort) })
   const roles = getAllRoles()
   const roleMap = Object.fromEntries(roles.map((r) => [r.id, r]))
 
@@ -105,9 +108,17 @@ export default function UsersPage() {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              {[t('common.id'), t('users.labelUsername'), t('users.email'), t('users.role'), t('common.status'), t('common.createdAt'), t('common.actions')].map((h) => (
-                <th key={h} className="px-4 py-3 text-left font-medium text-gray-600">{h}</th>
+              {[
+                { label: t('common.id'), key: 'id' },
+                { label: t('users.labelUsername'), key: 'username' },
+                { label: t('users.email'), key: 'email' },
+                { label: t('users.role'), key: 'role_id' },
+                { label: t('common.status'), key: 'status' },
+                { label: t('common.createdAt'), key: 'created_at' },
+              ].map(({ label, key }) => (
+                <SortableHeader key={key} label={label} sortKey={key} sort={sort} onSort={(s) => { setSort(s); setPage(1) }} />
               ))}
+              <th className="px-4 py-3 text-left font-medium text-gray-600">{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">

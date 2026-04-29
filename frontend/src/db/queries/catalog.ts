@@ -1,5 +1,5 @@
 import { dbInsert, dbUpdate, dbDelete, dbFindAll, dbFindById, dbSearch, dbCount } from '../init'
-import type { Row } from '../init'
+import type { Row, SortOption } from '../init'
 
 export interface Catalog extends Row {
   name: string
@@ -11,10 +11,10 @@ export interface Catalog extends Row {
 
 const TABLE = 'merchandise_catalog'
 
-export const findAllCatalogs = (page = 1, keyword = '') =>
+export const findAllCatalogs = (page = 1, keyword = '', sort: SortOption = { key: 'id', dir: 'desc' }) =>
   keyword
-    ? dbSearch<Catalog>(TABLE, page, (c) => c.name.toLowerCase().includes(keyword.toLowerCase()))
-    : dbFindAll<Catalog>(TABLE, page)
+    ? dbSearch<Catalog>(TABLE, page, (c) => c.name.toLowerCase().includes(keyword.toLowerCase()), sort)
+    : dbFindAll<Catalog>(TABLE, page, sort)
 
 export const countCatalogs = () => dbCount<Catalog>(TABLE)
 export const getCatalog = (id: number) => dbFindById<Catalog>(TABLE, id)

@@ -4,6 +4,15 @@ import type { Catalog } from './queries/catalog'
 import type { Merchandise } from './queries/merchandise'
 import type { Link } from './queries/link'
 
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
 async function seedRoles() {
   if (getTable<Role>('roles').length > 0) return
   const roles = [
@@ -16,13 +25,13 @@ async function seedRoles() {
 
 async function seedUsers() {
   if (getTable<User>('users').length > 0) return
-  const users = [
+  const users = shuffle([
     { username: 'admin', email: 'admin@example.com', password: 'admin123', role_id: 1, status: 1 },
     { username: 'manager1', email: 'manager@example.com', password: 'manager123', role_id: 2, status: 1 },
     { username: 'viewer1', email: 'viewer@example.com', password: 'viewer123', role_id: 3, status: 1 },
     { username: 'alice', email: 'alice@example.com', password: 'alice123', role_id: 2, status: 1 },
     { username: 'bob', email: 'bob@example.com', password: 'bob123', role_id: 3, status: 0 },
-  ]
+  ])
   for (const u of users) await dbInsert<User>('users', u)
 }
 
@@ -38,31 +47,32 @@ async function seedCatalogs() {
     { name: '零食', hidden: 0, prev_id: 2, is_root: 0, is_disable: 0 },
     { name: '手機配件', hidden: 0, prev_id: 3, is_root: 0, is_disable: 0 },
   ]
+  // catalogs must stay in order (IDs referenced by links), no shuffle
   for (const c of catalogs) await dbInsert<Catalog>('merchandise_catalog', c)
 }
 
 async function seedMerchandise() {
   if (getTable<Merchandise>('merchandise').length > 0) return
-  const items = [
-    { name: '可口可樂 330ml', cost: 12, price: 25, statement: '經典碳酸飲料', launched: 1, is_disable: 0, stock: 150, start_of_sale: '2025-01-01T00:00', end_of_sale: '2025-12-31T23:59' },
-    { name: '百事可樂 330ml', cost: 11, price: 25, statement: '百事碳酸飲料', launched: 1, is_disable: 0, stock: 80, start_of_sale: '2025-01-01T00:00', end_of_sale: '2025-12-31T23:59' },
-    { name: '柳橙汁 500ml', cost: 20, price: 45, statement: '100% 純柳橙汁', launched: 1, is_disable: 0, stock: 60, start_of_sale: '2025-03-01T00:00', end_of_sale: '2025-09-30T23:59' },
-    { name: '洋芋片原味', cost: 18, price: 35, statement: '酥脆洋芋片', launched: 1, is_disable: 0, stock: 8, start_of_sale: '2025-01-01T00:00', end_of_sale: '2025-12-31T23:59' },
-    { name: '黑巧克力 72%', cost: 55, price: 120, statement: '比利時進口黑巧克力', launched: 1, is_disable: 0, stock: 35, start_of_sale: '2025-02-01T00:00', end_of_sale: '2025-11-30T23:59' },
-    { name: 'USB-C 充電線 1m', cost: 80, price: 199, statement: '快充傳輸線', launched: 1, is_disable: 0, stock: 200, start_of_sale: '2025-01-01T00:00', end_of_sale: '2026-12-31T23:59' },
-    { name: '手機殼 iPhone 15', cost: 120, price: 299, statement: '防摔軍規手機殼', launched: 1, is_disable: 0, stock: 3, start_of_sale: '2025-01-01T00:00', end_of_sale: '2026-06-30T23:59' },
-    { name: '棉質T恤 白色 M', cost: 150, price: 390, statement: '純棉透氣T恤', launched: 0, is_disable: 0, stock: 45, start_of_sale: '2025-04-01T00:00', end_of_sale: '2025-08-31T23:59' },
-    { name: '運動短褲 黑色', cost: 200, price: 490, statement: '吸濕排汗運動褲', launched: 1, is_disable: 0, stock: 0, start_of_sale: '2025-04-01T00:00', end_of_sale: '2025-09-30T23:59' },
-    { name: '礦泉水 600ml', cost: 5, price: 15, statement: '天然礦泉水', launched: 1, is_disable: 0, stock: 500, start_of_sale: '2025-01-01T00:00', end_of_sale: '2025-12-31T23:59' },
-    { name: '綠茶 500ml', cost: 10, price: 22, statement: '無糖綠茶', launched: 1, is_disable: 0, stock: 120, start_of_sale: '2025-01-01T00:00', end_of_sale: '2025-12-31T23:59' },
-    { name: '耳機保護套', cost: 60, price: 150, statement: '矽膠耳機保護套', launched: 0, is_disable: 1, stock: 10, start_of_sale: '2025-01-01T00:00', end_of_sale: '2025-06-30T23:59' },
-  ]
+  const items = shuffle([
+    { name: '可口可樂 330ml', cost: 12, price: 25, statement: '經典碳酸飲料', launched: 1, is_disable: 0, stock: 150, start_of_sale: '2022-03-01T00:00', end_of_sale: '2023-02-28T23:59' },
+    { name: '百事可樂 330ml', cost: 11, price: 25, statement: '百事碳酸飲料', launched: 1, is_disable: 0, stock: 80, start_of_sale: '2022-06-15T00:00', end_of_sale: '2023-06-14T23:59' },
+    { name: '柳橙汁 500ml', cost: 20, price: 45, statement: '100% 純柳橙汁', launched: 1, is_disable: 0, stock: 60, start_of_sale: '2023-01-10T00:00', end_of_sale: '2023-09-30T23:59' },
+    { name: '洋芋片原味', cost: 18, price: 35, statement: '酥脆洋芋片', launched: 1, is_disable: 0, stock: 8, start_of_sale: '2022-11-01T00:00', end_of_sale: '2023-10-31T23:59' },
+    { name: '黑巧克力 72%', cost: 55, price: 120, statement: '比利時進口黑巧克力', launched: 1, is_disable: 0, stock: 35, start_of_sale: '2023-02-14T00:00', end_of_sale: '2024-02-13T23:59' },
+    { name: 'USB-C 充電線 1m', cost: 80, price: 199, statement: '快充傳輸線', launched: 1, is_disable: 0, stock: 200, start_of_sale: '2022-08-01T00:00', end_of_sale: '2024-07-31T23:59' },
+    { name: '手機殼 iPhone 15', cost: 120, price: 299, statement: '防摔軍規手機殼', launched: 1, is_disable: 0, stock: 3, start_of_sale: '2023-09-22T00:00', end_of_sale: '2024-09-21T23:59' },
+    { name: '棉質T恤 白色 M', cost: 150, price: 390, statement: '純棉透氣T恤', launched: 0, is_disable: 0, stock: 45, start_of_sale: '2023-04-01T00:00', end_of_sale: '2023-08-31T23:59' },
+    { name: '運動短褲 黑色', cost: 200, price: 490, statement: '吸濕排汗運動褲', launched: 1, is_disable: 0, stock: 0, start_of_sale: '2023-05-01T00:00', end_of_sale: '2023-09-30T23:59' },
+    { name: '礦泉水 600ml', cost: 5, price: 15, statement: '天然礦泉水', launched: 1, is_disable: 0, stock: 500, start_of_sale: '2022-01-01T00:00', end_of_sale: '2023-12-31T23:59' },
+    { name: '綠茶 500ml', cost: 10, price: 22, statement: '無糖綠茶', launched: 1, is_disable: 0, stock: 120, start_of_sale: '2022-04-01T00:00', end_of_sale: '2023-03-31T23:59' },
+    { name: '耳機保護套', cost: 60, price: 150, statement: '矽膠耳機保護套', launched: 0, is_disable: 1, stock: 10, start_of_sale: '2022-07-01T00:00', end_of_sale: '2023-06-30T23:59' },
+  ])
   for (const m of items) await dbInsert<Merchandise>('merchandise', m)
 }
 
 async function seedLinks() {
   if (getTable<Link>('catalog_link_merchandise').length > 0) return
-  const links = [
+  const links = shuffle([
     { layer_root: 1, layer_a: 5, layer_b: 0, layer_c: 0, layer_d: 0, merchandise_id: 1, hidden: 0 },
     { layer_root: 1, layer_a: 5, layer_b: 0, layer_c: 0, layer_d: 0, merchandise_id: 2, hidden: 0 },
     { layer_root: 1, layer_a: 6, layer_b: 0, layer_c: 0, layer_d: 0, merchandise_id: 3, hidden: 0 },
@@ -75,7 +85,7 @@ async function seedLinks() {
     { layer_root: 3, layer_a: 8, layer_b: 0, layer_c: 0, layer_d: 0, merchandise_id: 12, hidden: 1 },
     { layer_root: 4, layer_a: 0, layer_b: 0, layer_c: 0, layer_d: 0, merchandise_id: 8, hidden: 0 },
     { layer_root: 4, layer_a: 0, layer_b: 0, layer_c: 0, layer_d: 0, merchandise_id: 9, hidden: 0 },
-  ]
+  ])
   for (const l of links) await dbInsert<Link>('catalog_link_merchandise', l)
 }
 

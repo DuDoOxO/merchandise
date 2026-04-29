@@ -1,5 +1,5 @@
 import { dbInsert, dbUpdate, dbDelete, dbFindAll, dbFindById, dbSearch, dbBatchUpdate, dbBatchDelete, dbCount, getTable } from '../init'
-import type { Row } from '../init'
+import type { Row, SortOption } from '../init'
 
 export interface Merchandise extends Row {
   name: string
@@ -46,11 +46,11 @@ function makePredicate(f: MerchandiseFilter) {
   }
 }
 
-export const findAllMerchandise = (page = 1, filter: MerchandiseFilter = {}) => {
+export const findAllMerchandise = (page = 1, filter: MerchandiseFilter = {}, sort: SortOption = { key: 'id', dir: 'desc' }) => {
   const hasFilter = Object.values(filter).some((v) => v != null && v !== '')
   return hasFilter
-    ? dbSearch<Merchandise>(TABLE, page, makePredicate(filter))
-    : dbFindAll<Merchandise>(TABLE, page)
+    ? dbSearch<Merchandise>(TABLE, page, makePredicate(filter), sort)
+    : dbFindAll<Merchandise>(TABLE, page, sort)
 }
 
 export const countMerchandise = (filter?: MerchandiseFilter) =>

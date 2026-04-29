@@ -1,5 +1,5 @@
 import { dbInsert, dbUpdate, dbDelete, dbFindAll, getTable, dbCount } from '../init'
-import type { Row } from '../init'
+import type { Row, SortOption } from '../init'
 
 export const ALL_PERMISSIONS = [
   'catalog:read', 'catalog:write',
@@ -38,7 +38,7 @@ export interface UserInput {
 }
 
 // Roles
-export const findAllRoles = (page = 1) => dbFindAll<Role>('roles', page)
+export const findAllRoles = (page = 1, sort: SortOption = { key: 'id', dir: 'asc' }) => dbFindAll<Role>('roles', page, sort)
 export const getAllRoles = () => getTable<Role>('roles')
 export const countRoles = () => dbCount<Role>('roles')
 export const addRole = (data: RoleInput) =>
@@ -51,7 +51,7 @@ export const getRolePermissions = (role: Role): Permission[] => {
 }
 
 // Users
-export const findAllUsers = (page = 1) => dbFindAll<User>('users', page)
+export const findAllUsers = (page = 1, sort: SortOption = { key: 'id', dir: 'asc' }) => dbFindAll<User>('users', page, sort)
 export const countUsers = () => dbCount<User>('users')
 export const addUser = (data: UserInput) => dbInsert<User>('users', data)
 export const updateUser = (id: number, data: Partial<UserInput>) => dbUpdate<User>('users', id, data)

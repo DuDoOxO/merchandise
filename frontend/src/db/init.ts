@@ -67,10 +67,23 @@ export async function dbDelete(table: string, id: number): Promise<void> {
   setTable(table, rows.filter((r) => r.id !== id))
 }
 
-export function dbFindAll<T extends Row>(table: string, page: number): T[] {
-  const rows = getTable<T>(table)
-  const sorted = [...rows].sort((a, b) => b.id - a.id)
+export type SortDir = 'asc' | 'desc'
+export interface SortOption { key: string; dir: SortDir }
+
+function applySortAndPage<T extends Row>(rows: T[], sort: SortOption, page: number): T[] {
+  const sorted = [...rows].sort((a, b) => {
+    const av = (a as Record<string, unknown>)[sort.key]
+    const bv = (b as Record<string, unknown>)[sort.key]
+    const cmp = typeof av === 'number' && typeof bv === 'number'
+      ? av - bv
+      : String(av ?? '').localeCompare(String(bv ?? ''))
+    return sort.dir === 'asc' ? cmp : -cmp
+  })
   return sorted.slice((page - 1) * 20, page * 20)
+}
+
+export function dbFindAll<T extends Row>(table: string, page: number, sort: SortOption = { key: 'id', dir: 'desc' }): T[] {
+  return applySortAndPage(getTable<T>(table), sort, page)
 }
 
 export function dbFindById<T extends Row>(table: string, id: number): T | null {
@@ -81,10 +94,9 @@ export function dbSearch<T extends Row>(
   table: string,
   page: number,
   predicate: (row: T) => boolean,
+  sort: SortOption = { key: 'id', dir: 'desc' },
 ): T[] {
-  const rows = getTable<T>(table)
-  const sorted = [...rows].sort((a, b) => b.id - a.id).filter(predicate)
-  return sorted.slice((page - 1) * 20, page * 20)
+  return applySortAndPage(getTable<T>(table).filter(predicate), sort, page)
 }
 
 export function dbCount<T extends Row>(table: string, predicate?: (row: T) => boolean): number {
