@@ -36,6 +36,8 @@ export default {
     roles: '角色管理',
     logout: '登出',
     system: 'ERP 管理系統',
+    stockMovement: '入出庫紀錄',
+    auditLog: '操作日誌',
   },
   login: {
     title: 'Merchandise ERP',

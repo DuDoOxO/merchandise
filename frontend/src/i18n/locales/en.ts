@@ -36,6 +36,8 @@ export default {
     roles: 'Roles',
     logout: 'Logout',
     system: 'ERP System',
+    stockMovement: 'Stock Movements',
+    auditLog: 'Audit Log',
   },
   login: {
     title: 'Merchandise ERP',

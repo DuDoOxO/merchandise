@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
@@ -7,9 +7,12 @@ import {
 } from '../db/queries/merchandise'
 import type { Merchandise, MerchandiseInput, MerchandiseFilter } from '../db/queries/merchandise'
 import type { SortOption } from '../db/init'
+import { recordMovement } from '../db/queries/stockMovement'
 import Modal from '../components/Modal'
 import MerchandiseForm from '../components/merchandise/MerchandiseForm'
 import SortableHeader from '../components/SortableHeader'
+import { useAudit } from '../hooks/useAudit'
+import { useAuth } from '../context/AuthContext'
 
 function exportCsv(rows: Merchandise[], t: (k: string) => string) {
   const headers = ['ID', t('merchandise.labelName'), t('merchandise.labelCost'), t('merchandise.labelPrice'), t('merchandise.labelStock'), t('merchandise.launched'), t('merchandise.labelStartOfSale'), t('merchandise.labelEndOfSale'), t('common.createdAt')]
@@ -25,8 +28,11 @@ function exportCsv(rows: Merchandise[], t: (k: string) => string) {
 
 export default function MerchandisePage() {
   const { t } = useTranslation()
+  const { user } = useAuth()
+  const audit = useAudit()
   const qc = useQueryClient()
   const [page, setPage] = useState(1)
+  const fileRef = useRef<HTMLInputElement>(null)
   const [modal, setModal] = useState<'add' | 'edit' | 'stock' | null>(null)
   const [editing, setEditing] = useState<Merchandise | null>(null)
   const [selected, setSelected] = useState<Set<number>>(new Set())
@@ -38,12 +44,56 @@ export default function MerchandisePage() {
   const { data = [] } = useQuery({ queryKey: qKey, queryFn: () => findAllMerchandise(page, filter, sort) })
 
   const invalidate = () => { qc.invalidateQueries({ queryKey: ['merchandise'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }) }
-  const addMut = useMutation({ mutationFn: (d: MerchandiseInput) => addMerchandise(d), onSuccess: () => { invalidate(); setModal(null) } })
-  const updMut = useMutation({ mutationFn: ({ id, data }: { id: number; data: MerchandiseInput }) => updateMerchandise(id, data), onSuccess: () => { invalidate(); setModal(null) } })
-  const delMut = useMutation({ mutationFn: deleteMerchandise, onSuccess: invalidate })
-  const stockMut = useMutation({ mutationFn: ({ id, delta }: { id: number; delta: number }) => adjustStock(id, delta), onSuccess: () => { invalidate(); setModal(null) } })
+  const addMut = useMutation({
+    mutationFn: (d: MerchandiseInput) => addMerchandise(d),
+    onSuccess: (m) => { invalidate(); setModal(null); audit('create', 'merchandise', m.id, `新增商品: ${m.name}`) },
+  })
+  const updMut = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: MerchandiseInput }) => updateMerchandise(id, data),
+    onSuccess: (_, { id, data }) => { invalidate(); setModal(null); audit('update', 'merchandise', id, `修改商品: ${data.name}`) },
+  })
+  const delMut = useMutation({
+    mutationFn: deleteMerchandise,
+    onSuccess: (_, id) => { invalidate(); audit('delete', 'merchandise', id, `刪除商品 ID: ${id}`) },
+  })
+  const stockMut = useMutation({
+    mutationFn: ({ id, delta, before, name }: { id: number; delta: number; before: number; name: string }) =>
+      adjustStock(id, delta).then(() => ({ id, delta, before, name, after: Math.max(0, before + delta) })),
+    onSuccess: ({ id, delta, before, name, after }) => {
+      invalidate(); setModal(null)
+      const type = delta > 0 ? 'in' as const : 'out' as const
+      recordMovement({ merchandise_id: id, merchandise_name: name, type, quantity: delta, before, after, operator: user?.username ?? '', note: '' })
+      audit('stock_adjust', 'merchandise', id, `庫存調整: ${name} ${delta > 0 ? '+' : ''}${delta}`)
+    },
+  })
   const batchLaunchMut = useMutation({ mutationFn: ({ ids, v }: { ids: number[]; v: number }) => batchLaunch(ids, v), onSuccess: () => { invalidate(); setSelected(new Set()) } })
   const batchDelMut = useMutation({ mutationFn: batchDelete, onSuccess: () => { invalidate(); setSelected(new Set()) } })
+
+  const handleCsvImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = async (ev) => {
+      const text = ev.target?.result as string
+      const lines = text.split('\n').filter(Boolean)
+      const [, ...rows] = lines
+      for (const row of rows) {
+        const cols = row.split(',')
+        if (cols.length < 7) continue
+        const [, name, cost, price, stock, , startOfSale, endOfSale] = cols
+        if (!name?.trim()) continue
+        await addMerchandise({
+          name: name.trim(), cost: Number(cost) || 0, price: Number(price) || 0,
+          stock: Number(stock) || 0, statement: '', launched: 0, is_disable: 0,
+          start_of_sale: startOfSale?.trim() || new Date().toISOString(),
+          end_of_sale: endOfSale?.trim() || new Date(Date.now() + 86400000 * 365).toISOString(),
+        })
+      }
+      invalidate()
+      e.target.value = ''
+    }
+    reader.readAsText(file)
+  }
 
   const allIds = data.map((m) => m.id)
   const allChecked = allIds.length > 0 && allIds.every((id) => selected.has(id))
@@ -56,9 +106,13 @@ export default function MerchandisePage() {
       <div className="flex justify-between items-center">
         <h1 className="text-lg font-semibold text-gray-800">{t('merchandise.title')}</h1>
         <div className="flex gap-2">
-          <button onClick={() => exportCsv(getAllMerchandise(), t)} className="px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">
+          <button onClick={() => exportCsv(getAllMerchandise(), t)} className="px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
             {t('merchandise.exportCsv')}
           </button>
+          <button onClick={() => fileRef.current?.click()} className="px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
+            CSV 匯入
+          </button>
+          <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleCsvImport} />
           <button onClick={() => { setEditing(null); setModal('add') }} className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
             {t('merchandise.addMerchandise')}
           </button>
@@ -188,7 +242,7 @@ export default function MerchandisePage() {
             </div>
             <div className="flex justify-end gap-2">
               <button onClick={() => setModal(null)} className="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">{t('common.cancel')}</button>
-              <button onClick={() => stockMut.mutate({ id: editing.id, delta: stockDelta })} className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">{t('merchandise.confirmAdjust')}</button>
+              <button onClick={() => stockMut.mutate({ id: editing.id, delta: stockDelta, before: editing.stock ?? 0, name: editing.name })} className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">{t('merchandise.confirmAdjust')}</button>
             </div>
           </div>
         </Modal>

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
 import { getTable } from '../db/init'
 import type { Merchandise } from '../db/queries/merchandise'
 import type { Catalog } from '../db/queries/catalog'
@@ -30,11 +31,16 @@ export default function DashboardPage() {
         const now = Date.now()
         return new Date(m.start_of_sale).getTime() <= now && new Date(m.end_of_sale).getTime() >= now
       })
-      return { merch, catalogs, launched, totalStock, lowStock, totalValue, disabled, onSaleNow }
+      const launchPie = [
+        { name: '已上架', value: launched.length },
+        { name: '未上架', value: merch.length - launched.length },
+      ]
+      const topStock = [...merch].sort((a, b) => (b.stock ?? 0) - (a.stock ?? 0)).slice(0, 8)
+      return { merch, catalogs, launched, totalStock, lowStock, totalValue, disabled, onSaleNow, launchPie, topStock }
     },
   })
 
-  const d = data ?? { merch: [], catalogs: [], launched: [], totalStock: 0, lowStock: [], totalValue: 0, disabled: [], onSaleNow: [] }
+  const d = data ?? { merch: [], catalogs: [], launched: [], totalStock: 0, lowStock: [], totalValue: 0, disabled: [], onSaleNow: [], launchPie: [], topStock: [] }
 
   return (
     <div className="space-y-6">
@@ -51,6 +57,34 @@ export default function DashboardPage() {
         <StatCard label={t('dashboard.stockValue')} value={`$${d.totalValue.toLocaleString()}`} color="text-indigo-600" />
         <StatCard label={t('dashboard.lowStock')} value={d.lowStock.length} sub={t('dashboard.lowStockSub')} color={d.lowStock.length > 0 ? 'text-red-500' : 'text-gray-400'} />
         <StatCard label={t('dashboard.disabledMerchandise')} value={d.disabled.length} color="text-gray-400" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">上架比例</h2>
+          <ResponsiveContainer width="100%" height={200}>
+            <PieChart>
+              <Pie data={d.launchPie} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label>
+                <Cell fill="#22c55e" />
+                <Cell fill="#d1d5db" />
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">庫存 Top 8</h2>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={d.topStock} margin={{ left: -10 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} />
+              <Tooltip />
+              <Bar dataKey="stock" fill="#6366f1" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       {d.lowStock.length > 0 && (
