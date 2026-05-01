@@ -12,3 +12,5 @@
 # swagger
 /docs
 .*
+!.github
+!.github/**
